@@ -1,0 +1,12 @@
+USE RetailLakehouse;
+GO
+
+SELECT 
+    TABLE_SCHEMA,
+    TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = 'raw';
+
+SELECT TOP 5 * FROM raw.customers;
+SELECT TOP 5 * FROM raw.products;
+SELECT TOP 5 * FROM raw.orders;
