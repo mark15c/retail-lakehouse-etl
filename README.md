@@ -21,16 +21,39 @@ CSV → RAW → STAGE → ANALYTICS → REPORTE
 - Power BI
 - Git
 
-## 3. Estructura del proyecto
+## 3. Requisitos previos
+
+Antes de ejecutar el proyecto, se requiere tener instalado:
+
+- Python 3.11 o superior.
+- SQL Server.
+- SQL Server Management Studio.
+- Power BI Desktop.
+- Git.
+- ODBC Driver 17 for SQL Server.
+
+Instalar librerías de Python:
+
+```bash
+pip install pandas sqlalchemy pyodbc
+```
+
+Nota: En los scripts Python se debe configurar el nombre del servidor SQL Server en la variable `SERVER`.
+
+Ejemplo:
+
+```python
+SERVER = "DESKTOP-2DJB5PC"
+```
+
+## 4. Estructura del proyecto
 
 ```text
 prueba_data_enginner/
 │
 ├── data/
 │   └── raw/
-│       ├── customers.csv
-│       ├── products.csv
-│       └── orders.csv
+│       └── colocar_aqui_los_csv_provistos/
 │
 ├── src/
 │   ├── ingesta_raw_sqlserver.py
@@ -45,12 +68,19 @@ prueba_data_enginner/
 │   ├── 05_queries_reporte.sql
 │   └── 06_examen_sql.sql
 │
+├── outputs/
+│   └── dashboard_powerbi.png
+│
 ├── main.py
+├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
-## 4. Ejecución del pipeline completo
+> Nota: Los archivos CSV originales deben colocarse manualmente en `data/raw/` antes de ejecutar el pipeline.  
+> Estos archivos no se suben al repositorio porque pueden contener datos sensibles y están excluidos en `.gitignore`.
+
+## 5. Ejecución del pipeline completo
 
 Desde la raíz del proyecto:
 
@@ -65,7 +95,13 @@ Este comando ejecuta en orden:
 3. Limpieza y transformación hacia la capa STAGE.
 4. Creación de tablas analíticas en la capa ANALYTICS.
 
-## 5. Base de datos
+Resultado esperado:
+
+```text
+PIPELINE EJECUTADO CORRECTAMENTE
+```
+
+## 6. Base de datos
 
 Base de datos utilizada:
 
@@ -73,16 +109,27 @@ Base de datos utilizada:
 RetailLakehouse
 ```
 
-Schemas creados:
+Schemas principales:
 
 ```text
 raw
 stage
 analytics
+```
+
+Schema opcional de seguridad:
+
+```text
 security
 ```
 
-## 6. Capa RAW
+El schema `security` se crea al ejecutar el script de protección de PII:
+
+```bash
+python src/seguridad.py
+```
+
+## 7. Capa RAW
 
 Los archivos CSV originales se cargan al schema `raw`.
 
@@ -98,9 +145,10 @@ Script utilizado:
 python src/ingesta_raw_sqlserver.py
 ```
 
-En esta capa los datos se conservan en formato crudo, sin aplicar limpieza fuerte.
+En esta capa los datos se conservan en formato crudo, sin aplicar limpieza fuerte.  
+El objetivo de RAW es mantener una copia fiel de la fuente original.
 
-## 7. Capa STAGE
+## 8. Capa STAGE
 
 Los datos se limpian y transforman desde RAW hacia STAGE.
 
@@ -129,9 +177,10 @@ Reglas principales aplicadas:
 - Tratamiento de cantidades menores o iguales a cero.
 - Tratamiento de edades imposibles.
 - Tratamiento de descuentos fuera del rango 0 a 100.
+- Estandarización de campos categóricos como `status` y `active`.
 - Agregado de columna `fecha_actualizacion`.
 
-## 8. Capa ANALYTICS
+## 9. Capa ANALYTICS
 
 Se crearon tablas finales para análisis y reporte.
 
@@ -155,7 +204,7 @@ sql/04_tablas_analytics.sql
 | `analytics.dim_producto` | Dimensión con atributos descriptivos de productos. |
 | `analytics.fact_producto` | Tabla de hechos con métricas de ventas por producto. |
 
-## 9. Reporte Power BI
+## 10. Reporte Power BI
 
 El reporte fue desarrollado en Power BI usando las tablas de la capa `analytics`.
 
@@ -167,12 +216,20 @@ Preguntas de negocio respondidas:
 
 Visualizaciones utilizadas:
 
-- Gráfico de barras para top 5 productos por ingresos.
-- Gráfico de líneas para evolución mensual de ventas.
-- Gráfico de dona o barras para distribución de pedidos por estado.
+- Gráfico de barras para el top 5 de productos por ingresos.
+- Gráfico de líneas para la evolución mensual de ventas.
+- Gráfico de dona o barras para la distribución de pedidos por estado.
 - Segmentador por año para análisis interactivo.
 
-## 10. Examen SQL
+El dashboard exportado como imagen se encuentra en:
+
+```text
+outputs/dashboard_powerbi.png
+```
+
+El archivo `.pbix` puede entregarse dentro del ZIP final si se solicita, pero no se recomienda subirlo al repositorio de GitHub porque puede contener datos importados y pesar demasiado.
+
+## 11. Examen SQL
 
 Las preguntas finales se resolvieron en SQL Server.
 
@@ -188,7 +245,7 @@ Preguntas respondidas:
 2. Revenue mensual por categoría de producto.
 3. Pedidos cuyo `total_amount_usd` supera 2 desviaciones estándar del promedio.
 
-## 11. Seguridad de la Información - PII
+## 12. Seguridad de la Información - PII
 
 Se identificaron como columnas PII las siguientes:
 
@@ -216,7 +273,9 @@ Script utilizado:
 python src/seguridad.py
 ```
 
-## 12. Consideraciones sobre Git
+Esta parte es opcional respecto al pipeline principal, pero demuestra protección de datos sensibles.
+
+## 13. Consideraciones sobre Git y `.gitignore`
 
 El proyecto incluye un archivo `.gitignore` para evitar subir archivos innecesarios o sensibles.
 
@@ -229,8 +288,9 @@ Archivos excluidos:
 - Archivos `.env`.
 - Logs.
 - Bases locales.
+- Archivos pesados o con datos importados, como `.pbix`, si se decide excluirlos.
 
-## 13. Orden manual de ejecución
+## 14. Orden manual de ejecución
 
 En caso de ejecutar manualmente, seguir este orden:
 
@@ -241,6 +301,15 @@ En caso de ejecutar manualmente, seguir este orden:
 5. Ejecutar `python src/seguridad.py`, si se desea generar la tabla protegida.
 6. Ejecutar `sql/06_examen_sql.sql` para las preguntas finales.
 
-## 14. Autor
+## 15. Entregables
 
-Manolo Meza
+El entregable final puede incluir:
+
+- Repositorio GitHub con código, SQL, README y `.gitignore`.
+- Archivo ZIP con el proyecto.
+- Imagen del dashboard en `outputs/dashboard_powerbi.png`.
+- Archivo Power BI `.pbix`, si se solicita en la entrega final.
+
+## 16. Autor
+
+Manolo Marcos Meza Rodriguez
